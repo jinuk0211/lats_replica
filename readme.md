@@ -1,3 +1,127 @@
+HotPotQA Prompts
+E.1Base Acting Prompt
+Solve a question answering task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation, and Action can be three types:
+
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+
+(3) Finish[answer], which returns the answer and finishes the task.
+
+After each observation, provide the next Thought and next Action.
+
+Here are some examples:
+
+Question: Which magazine was started first Arthur’s Magazine or First for Women?
+
+Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
+
+Action 1: Search[Arthur’s Magazine]
+
+Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
+
+Thought 2: Arthur’s Magazine was started in 1844. I need to search First for Women next.
+
+Action 2: Search[First for Women]
+
+Observation 2: First for Women is a woman’s magazine published by Bauer Media Group in the USA.[1] The magazine was started in 1989. It is based in Englewood Cliffs, New Jersey.[2] In 2011 the circulation of the magazine was 1,310,696 copies.[3]
+
+Thought 3: First for Women was started in 1989. 1844 (Arthur’s Magazine) 
+<
+ 1989 (First for Women), so Arthur’s Magazine was started first.
+
+Action 3: Finish[Arthur’s Magazine]
+
+(examples)
+
+You have attempted to answer the following question before and failed. The following reflection(s) give a plan to avoid failing to answer the question in the same way you did previously. Use them to improve your strategy of correctly answering the given question.
+
+(trajectories)
+
+(input)
+
+E.2Base Reasoning Prompt
+Solve a question answering task by having a Thought, then Finish with your answer. Thought can reason about the current situation. Finish[answer] returns the answer and finishes the task. You will be given context that you should use to help you answer the question. Start your response with either Action or an indexed Thought
+
+Here are some examples:
+
+Question: What is the elevation range for the area that the eastern sector of the Colorado orogeny extends into?
+
+Let’s think step by step.
+
+Thought 1: The eastern sector of Colorado orogeny extends into the High Plains.
+
+Thought 2: High Plains rise in elevation from around 1,800 to 7,000 ft
+
+Thought 3: The answer is 1,800 to 7,000 ft.
+
+Action: Finish[1,800 to 7,000 ft]
+
+(examples)
+
+Previous trial: (trajectories)
+
+(input)
+
+E.3Value Function Prompt
+Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental Observations about the situation, Thoughts that can reason about the current situation, and Actions that can be three types:
+
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude “Thus the correctness score is s”, where s is an integer from 1 to 10.
+
+Question: Which magazine was started first Arthur’s Magazine or First for Women?
+
+Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
+
+Action 1: Search[Arthur’s Magazine]
+
+Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
+
+This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
+
+Thus the correctness score is 10
+
+(other examples)
+
+(failed trajectories)
+
+(context)
+
+E.4Reflection Prompt
+Analyze the trajectories of a solution to a question-answering task. The trajectories are labeled by environmental Observations about the situation, Thoughts that can reason about the current situation, and Actions that can be three types:
+
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude “Thus the correctness score is s”, where s is an integer from 1 to 10.
+
+Question: Which magazine was started first Arthur’s Magazine or First for Women?
+
+Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
+
+Action 1: Search[Arthur’s Magazine]
+
+Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
+
+This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
+
+Thus the correctness score is 10
+
+(other examples)
+
+(failed trajectories)
+
+(context)
+
+
 ```python
 global reflection_map
 global failed_trajectories
