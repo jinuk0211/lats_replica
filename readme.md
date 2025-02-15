@@ -1,5 +1,9 @@
 HotPotQA Prompts
-E.1Base Acting Prompt
+
+E.1
+
+Base Acting Prompt
+
 Solve a question answering task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation, and Action can be three types:
 
 (1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
@@ -40,7 +44,10 @@ You have attempted to answer the following question before and failed. The follo
 
 (input)
 
-E.2Base Reasoning Prompt
+E.2
+
+Base Reasoning Prompt
+
 Solve a question answering task by having a Thought, then Finish with your answer. Thought can reason about the current situation. Finish[answer] returns the answer and finishes the task. You will be given context that you should use to help you answer the question. Start your response with either Action or an indexed Thought
 
 Here are some examples:
