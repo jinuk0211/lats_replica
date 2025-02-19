@@ -269,11 +269,28 @@ def expand_node(node, args, task):
         node.is_terminal = True
         return
     new_nodes = generate_new_states(node, args, task, args.n_generate_sample)
-    node.children.extend(new_nodes)
+    node.children.extend(new_nodes) #여기서 끝 expand_node
+#==========================================================
 def generate_new_states(node, args, task, n):
     global failed_trajectories
     prompt = generate_prompt(node)
     sampled_actions = get_samples(task, prompt, f"Thought {node.depth + 1}: ", n, prompt_sample=args.prompt_sample, stop="Observation")
+# def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
+#     global failed_trajectories
+#     global reflection_map
+#     unique_trajectories = get_unique_trajectories(failed_trajectories)
+#     if len(unique_trajectories) > len(reflection_map) and len(unique_trajectories) < 4:
+#         print("generating reflections")
+#         reflection_map = task.generate_self_reflection(unique_trajectories, x)
+#     if prompt_sample == 'standard':
+#         prompt = task.standard_prompt_wrap(x, y)
+#     elif prompt_sample == 'cot':
+#         prompt = task.cot_prompt_wrap(x, y, reflection_map)
+#     else:
+#         raise ValueError(f'prompt_sample {prompt_sample} not recognized')
+#     logging.info(f"PROMPT: {prompt}")
+#     samples = gpt(prompt, n=n_generate_sample, stop=stop)
+#     return [y + _ for _ in samples]  
     logging.info(f"SAMPLED ACTION: {sampled_actions}")
     tried_actions = []
     
@@ -315,13 +332,19 @@ def generate_new_states(node, args, task, n):
 
             if new_node.is_terminal and r == 0:
                 trajectory = collect_trajectory(new_node)
-                #print(trajectory)
-                #if f"{action_type.lower()}[{action_param}]" not in failed_trajectories.values():
+# def collect_trajectory(node):
+#     trajectory = []
+#     while node:
+#         trajectory.append(str(node))
+#         node = node.parent
+#     return '\n'.join(reversed(trajectory))              
+                print(trajectory)
+              if f"{action_type.lower()}[{action_param}]" not in failed_trajectories.values():
                 failed_trajectories.append({'trajectory': trajectory, 'final_answer': f"{action_type.lower()}[{action_param}]"})
 
     return list(unique_states.values())  # Return unique nodes as a list
-
-  #----------------------------
+#================================================ 
+#----------------------------
         value = evaluate_node(node, args, task)
         # Find the child with the highest value
 
@@ -418,80 +441,7 @@ def rollout(node, args, task, idx, max_depth=4):
         values = []
         while len(new_states) == 0:
             new_states = generate_new_states(node, args, task, n)
-#==========================================================
-def generate_new_states(node, args, task, n):
-    global failed_trajectories
-    prompt = generate_prompt(node)
-    sampled_actions = get_samples(task, prompt, f"Thought {node.depth + 1}: ", n, prompt_sample=args.prompt_sample, stop="Observation")
-# def get_samples(task, x, y, n_generate_sample, prompt_sample, stop):
-#     global failed_trajectories
-#     global reflection_map
-#     unique_trajectories = get_unique_trajectories(failed_trajectories)
-#     if len(unique_trajectories) > len(reflection_map) and len(unique_trajectories) < 4:
-#         print("generating reflections")
-#         reflection_map = task.generate_self_reflection(unique_trajectories, x)
-#     if prompt_sample == 'standard':
-#         prompt = task.standard_prompt_wrap(x, y)
-#     elif prompt_sample == 'cot':
-#         prompt = task.cot_prompt_wrap(x, y, reflection_map)
-#     else:
-#         raise ValueError(f'prompt_sample {prompt_sample} not recognized')
-#     logging.info(f"PROMPT: {prompt}")
-#     samples = gpt(prompt, n=n_generate_sample, stop=stop)
-#     return [y + _ for _ in samples]  
-    logging.info(f"SAMPLED ACTION: {sampled_actions}")
-    tried_actions = []
-    
-    unique_states = {}  # Store unique states here
-    for action in sampled_actions:
-        new_state = node.state.copy()  # Make a copy of the parent node's state
-
-        thought_line = next((line.split(":")[1].strip() for line in action.split("\n") if line.startswith(f"Thought {node.depth + 1}")), '')
-        action_line = next((line.split(":")[1].strip() for line in action.split("\n") if line.startswith("Action") and ":" in line), None)
-
-        # Use thought and action to form a unique key
-        unique_key = f"{thought_line}::{action_line}"
-        
-        if unique_key in unique_states:
-            continue  # Skip if this state already exists
-
-        tried_actions.append(action_line)
-        
-        if action_line:
-            action_type = action_line.split('[')[0] if '[' in action_line else action_line
-            action_param = action_line.split('[')[1].split(']')[0] if '[' in action_line else ""
-
-            obs, r, done, info = step(env, f"{action_type.lower()}[{action_param}]")
-
-            # Update the new state dictionary
-            new_state['thought'] = thought_line
-            new_state['action'] = action_line
-            new_state['observation'] = obs
-
-            new_node = Node(state=new_state, question=node.question, parent=node)
-            new_node.is_terminal = r == 1 or done
-            new_node.reward = r
-            new_node.depth = node.depth + 1
-            if r == 1:
-                new_node.em = info.get('em')
-            unique_states[unique_key] = new_node  # Add this state to unique_states
-            logging.info(f"NEW NODE: {new_node}")
-            logging.info(f"Feedback: {info}")
-
-            if new_node.is_terminal and r == 0:
-                trajectory = collect_trajectory(new_node)
-# def collect_trajectory(node):
-#     trajectory = []
-#     while node:
-#         trajectory.append(str(node))
-#         node = node.parent
-#     return '\n'.join(reversed(trajectory))              
-                print(trajectory)
-              if f"{action_type.lower()}[{action_param}]" not in failed_trajectories.values():
-                failed_trajectories.append({'trajectory': trajectory, 'final_answer': f"{action_type.lower()}[{action_param}]"})
-
-    return list(unique_states.values())  # Return unique nodes as a list
-#================================================      
+   
         for state in new_states:
             if state.is_terminal:
                 return state.reward, state
