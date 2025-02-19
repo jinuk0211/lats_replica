@@ -329,7 +329,60 @@ def generate_new_states(node, args, task, n):
 def evaluate_node(node, args, task):
     child_prompts = [generate_prompt(child) for child in node.children if not child.is_terminal]
     votes = get_values(task, node.question, child_prompts, args.n_evaluate_sample)
+#===================================
+def get_value(task, x, y, n_evaluate_sample, cache_value=True):
+    global reflection_map
+    global failed_trajectories
     
+    unique_trajectories = get_unique_trajectories(failed_trajectories)
+# def get_unique_trajectories(failed_trajectories, num=5):
+#     unique_trajectories = []
+#     seen_final_answers = set()
+#     for traj in failed_trajectories:
+#         final_answer = traj.get('final_answer')
+#         if final_answer not in seen_final_answers:
+#             node_string = traj['trajectory']
+#           #node_trajectory_to_text(node_string) 시작
+#             lines = node_string.split('\n')
+#             formatted_lines = []
+#             for line in lines:
+#                 try:
+#                     depth = int(line.split(",")[0].split("=")[1].strip())
+#                     thought = line.split(", thought=")[1].split(", action=")[0].strip()
+#                     action = line.split(", action=")[1].split(", observation=")[0].strip()
+#                     observation = line.split(", observation=")[1].split(")")[0].strip()
+#                 except IndexError:
+#                     continue
+                
+#                 if depth != 0:
+#                     if thought:
+#                         formatted_lines.append(f"Thought {depth}: {thought}")
+#                     if action:
+#                         formatted_lines.append(f"Action {depth}: {action}")
+#                     if observation:
+#                         formatted_lines.append(f"Observation {depth}: {observation}")
+            
+#             result = '\n'.join(formatted_lines) 
+#           #여기까지 node_trajectory_to_text(node_string):
+#             unique_trajectories.append(result) 
+#             seen_final_answers.add(final_answer)
+#         if len(unique_trajectories) >= num:
+#             break
+#     return unique_trajectories  
+    value_prompt = task.value_prompt_wrap(x, y, unique_trajectories, reflection_map)
+    logging.info(f"Current: {x}")
+    logging.info(f"Current: {y}")
+    if cache_value and value_prompt in task.value_cache:
+        return task.value_cache[value_prompt]
+    logging.info(f"VALUE PROMPT: {value_prompt}")
+    value_outputs = gpt(value_prompt, n=n_evaluate_sample, stop=None)
+    logging.info(f"VALUE OUTPUTS: {value_outputs}")
+    value = task.value_outputs_unwrap(value_outputs)
+    logging.info(f"VALUES: {value}")
+    if cache_value:
+        task.value_cache[value_prompt] = value
+    return value        
+  #====================    
     logging.info(f"Length of votes: {len(votes)}")
     logging.info(f"Length of node.children: {len(node.children)}")
     
@@ -447,60 +500,7 @@ def generate_new_states(node, args, task, n):
         #new_state = new_state[0]
         while len(values) == 0:
             values = get_values(task, node.question, child_prompts, args.n_evaluate_sample)
-#===================================
-def get_value(task, x, y, n_evaluate_sample, cache_value=True):
-    global reflection_map
-    global failed_trajectories
-    
-    unique_trajectories = get_unique_trajectories(failed_trajectories)
-# def get_unique_trajectories(failed_trajectories, num=5):
-#     unique_trajectories = []
-#     seen_final_answers = set()
-#     for traj in failed_trajectories:
-#         final_answer = traj.get('final_answer')
-#         if final_answer not in seen_final_answers:
-#             node_string = traj['trajectory']
-#           #node_trajectory_to_text(node_string) 시작
-#             lines = node_string.split('\n')
-#             formatted_lines = []
-#             for line in lines:
-#                 try:
-#                     depth = int(line.split(",")[0].split("=")[1].strip())
-#                     thought = line.split(", thought=")[1].split(", action=")[0].strip()
-#                     action = line.split(", action=")[1].split(", observation=")[0].strip()
-#                     observation = line.split(", observation=")[1].split(")")[0].strip()
-#                 except IndexError:
-#                     continue
-                
-#                 if depth != 0:
-#                     if thought:
-#                         formatted_lines.append(f"Thought {depth}: {thought}")
-#                     if action:
-#                         formatted_lines.append(f"Action {depth}: {action}")
-#                     if observation:
-#                         formatted_lines.append(f"Observation {depth}: {observation}")
-            
-#             result = '\n'.join(formatted_lines) 
-#           #여기까지 node_trajectory_to_text(node_string):
-#             unique_trajectories.append(result) 
-#             seen_final_answers.add(final_answer)
-#         if len(unique_trajectories) >= num:
-#             break
-#     return unique_trajectories  
-    value_prompt = task.value_prompt_wrap(x, y, unique_trajectories, reflection_map)
-    logging.info(f"Current: {x}")
-    logging.info(f"Current: {y}")
-    if cache_value and value_prompt in task.value_cache:
-        return task.value_cache[value_prompt]
-    logging.info(f"VALUE PROMPT: {value_prompt}")
-    value_outputs = gpt(value_prompt, n=n_evaluate_sample, stop=None)
-    logging.info(f"VALUE OUTPUTS: {value_outputs}")
-    value = task.value_outputs_unwrap(value_outputs)
-    logging.info(f"VALUES: {value}")
-    if cache_value:
-        task.value_cache[value_prompt] = value
-    return value        
-  #====================
+
         max_value_index = values.index(max(values))
         rewards.append(max(values))
         node = new_states[max_value_index] 
