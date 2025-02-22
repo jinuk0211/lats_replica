@@ -537,7 +537,7 @@ def get_value(task, x, y, n_evaluate_sample, cache_value=True):
             prompt = value_prompt_reasoning.format(s="", input=inp)
             
         return prompt        
-  #==================== evaluate_node 끝
+  #==================== get_value 끝
     logging.info(f"Length of votes: {len(votes)}")
     logging.info(f"Length of node.children: {len(node.children)}")
     
@@ -557,7 +557,7 @@ def get_value(task, x, y, n_evaluate_sample, cache_value=True):
     # for i, child in enumerate(node.children):
     #     child.value = votes[i] / max_vote  # Now safe from division by zero
     return sum(votes) / len(votes) if votes else 0
-#---------------------------------
+#---------------------------------evaluate_node 끝
         reward, terminal_node = rollout(max(node.children, key=lambda child: child.value), args, task, idx, max_depth=4)
 
 #--------------------------------------------
