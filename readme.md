@@ -1,4 +1,3 @@
-
 ```bash
 HotPotQA Prompts
 
@@ -304,6 +303,57 @@ class WikiEnv(gym.Env):
         "call_time": self.search_time,
         "num_calls": self.num_searches,
     }
+```
+task
+```python
+class HotPotQATask(Task):
+    """
+    Input (x)   : a text instruction
+    Output (y)  : a text generation
+    Reward (r)  : # TODO
+    Input Example: 
+    Output Example: 
+    """
+    def __init__(self):
+        """
+        file: a text file, each line is some sentences
+        """
+        super().__init__()
+        self.steps = 7
+        self.stops = ['\nObservation:\n', None]
+        self.value_cache = {}
+
+    def __len__(self) -> int:
+        return len(self.data)
+    
+    def get_input(self, idx: int) -> str:
+        return self.data[idx]
+    
+    def test_output(self, idx: int, output: str):
+        output = output.split('Action:\n')[-1]
+        prompt = score_prompt + output
+        score_outputs = gpt(prompt, n=5, model='gpt-4')
+        scores = []
+        for score_output in score_outputs:
+            # print(score_output)
+            pattern = r".*correctness score is (\d+).*"
+            match = re.match(pattern, score_output, re.DOTALL)
+            if match:
+                score = int(match.groups()[0])
+                scores.append(score)
+            else:
+                print(f'------------------score no match: {[score_output]}')
+        print(scores)
+        # print('------------')
+        info = {'rs': scores, 'r': sum(scores) / len(scores) if scores else 0}
+        return info
+    
+    @staticmethod
+    def standard_prompt_wrap(x: str, y:str='') -> str:
+        return standard_prompt.format(input=x) + y
+standard_prompt = '''
+Write a coherent passage of 4 short paragraphs. The end sentence of each paragraph must be: {input}
+'''
 ```
 ```python
 global reflection_map
