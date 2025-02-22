@@ -632,8 +632,8 @@ def backpropagate(node, value):
     #     for child in node.children:
     #         nodes.extend(collect_all_nodes(child))
     #     return nodes
-    #     for j, (node, value) in enumerate(all_nodes):
-    #         logging.info(f"Node {j+1}: {str(node)}")
+        for j, (node, value) in enumerate(all_nodes):
+             logging.info(f"Node {j+1}: {str(node)}")
         logging.info(f"State of all_nodes after iteration {i + 1}: {all_nodes}")
 
     all_nodes_list = collect_all_nodes(root)
