@@ -361,13 +361,7 @@ global failed_trajectories
 reflection_map = []
 failed_trajectories = []
 
-def step(env, action):
-    attempts = 0
-    while attempts < 10:
-        try:
-            return env.step(action)
-        except requests.exceptions.Timeout:
-            attempts += 1
+
 
 class Node:
     def __init__(self, state, question, parent=None):
@@ -540,7 +534,15 @@ def generate_new_states(node, args, task, n):
             action_param = action_line.split('[')[1].split(']')[0] if '[' in action_line else ""
 
             obs, r, done, info = step(env, f"{action_type.lower()}[{action_param}]")
-
+###############
+def step(env, action):
+    attempts = 0
+    while attempts < 10:
+        try:
+            return env.step(action)
+        except requests.exceptions.Timeout:
+            attempts += 1
+#####################
             # Update the new state dictionary
             new_state['thought'] = thought_line
             new_state['action'] = action_line
