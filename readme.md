@@ -549,7 +549,7 @@ def step(env, action):
             new_state['observation'] = obs
 
             new_node = Node(state=new_state, question=node.question, parent=node)
-            new_node.is_terminal = r == 1 or done
+            new_node.is_terminal = r == 1 or done #reward 가 1이거나 done을 step이 return 시 True
             new_node.reward = r
             new_node.depth = node.depth + 1
             if r == 1:
