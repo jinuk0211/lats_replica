@@ -571,8 +571,8 @@ def step(env, action):
                 failed_trajectories.append({'trajectory': trajectory, 'final_answer': f"{action_type.lower()}[{action_param}]"})
 
     return list(unique_states.values())  # Return unique nodes as a list
-#================================================ 
-#----------------------------
+#================================================ generate_new_states
+#---------------------------- expand_nodes
         value = evaluate_node(node, args, task)
         # Find the child with the highest value
 
