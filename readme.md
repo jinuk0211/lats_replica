@@ -1,134 +1,4 @@
-```bash
-HotPotQA Prompts
 
-E.1
-
-Base Acting Prompt
-
-Solve a question answering task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation, and Action can be three types:
-
-(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
-
-(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
-
-(3) Finish[answer], which returns the answer and finishes the task.
-
-After each observation, provide the next Thought and next Action.
-
-Here are some examples:
-
-Question: Which magazine was started first Arthur’s Magazine or First for Women?
-
-Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
-
-Action 1: Search[Arthur’s Magazine]
-
-Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
-
-Thought 2: Arthur’s Magazine was started in 1844. I need to search First for Women next.
-
-Action 2: Search[First for Women]
-
-Observation 2: First for Women is a woman’s magazine published by Bauer Media Group in the USA.[1] The magazine was started in 1989. It is based in Englewood Cliffs, New Jersey.[2] In 2011 the circulation of the magazine was 1,310,696 copies.[3]
-
-Thought 3: First for Women was started in 1989. 1844 (Arthur’s Magazine) 
-<
- 1989 (First for Women), so Arthur’s Magazine was started first.
-
-Action 3: Finish[Arthur’s Magazine]
-
-(examples)
-
-You have attempted to answer the following question before and failed. The following reflection(s) give a plan to avoid failing to answer the question in the same way you did previously. Use them to improve your strategy of correctly answering the given question.
-
-(trajectories)
-
-(input)
-
-E.2
-
-Base Reasoning Prompt
-
-Solve a question answering task by having a Thought, then Finish with your answer. Thought can reason about the current situation. Finish[answer] returns the answer and finishes the task. You will be given context that you should use to help you answer the question. Start your response with either Action or an indexed Thought
-
-Here are some examples:
-
-Question: What is the elevation range for the area that the eastern sector of the Colorado orogeny extends into?
-
-Let’s think step by step.
-
-Thought 1: The eastern sector of Colorado orogeny extends into the High Plains.
-
-Thought 2: High Plains rise in elevation from around 1,800 to 7,000 ft
-
-Thought 3: The answer is 1,800 to 7,000 ft.
-
-Action: Finish[1,800 to 7,000 ft]
-
-(examples)
-
-Previous trial: (trajectories)
-
-(input)
-
-E.3Value Function Prompt
-Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental Observations about the situation, Thoughts that can reason about the current situation, and Actions that can be three types:
-
-(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
-
-(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
-
-(3) Finish[answer], which returns the answer and finishes the task.
-
-Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude “Thus the correctness score is s”, where s is an integer from 1 to 10.
-
-Question: Which magazine was started first Arthur’s Magazine or First for Women?
-
-Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
-
-Action 1: Search[Arthur’s Magazine]
-
-Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
-
-This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
-
-Thus the correctness score is 10
-
-(other examples)
-
-(failed trajectories)
-
-(context)
-
-E.4Reflection Prompt
-Analyze the trajectories of a solution to a question-answering task. The trajectories are labeled by environmental Observations about the situation, Thoughts that can reason about the current situation, and Actions that can be three types:
-
-(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
-
-(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
-
-(3) Finish[answer], which returns the answer and finishes the task.
-
-Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude “Thus the correctness score is s”, where s is an integer from 1 to 10.
-
-Question: Which magazine was started first Arthur’s Magazine or First for Women?
-
-Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
-
-Action 1: Search[Arthur’s Magazine]
-
-Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
-
-This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
-
-Thus the correctness score is 10
-
-(other examples)
-
-(failed trajectories)
-
-(context)
-```
 Env
 
 ```python
@@ -632,8 +502,42 @@ def get_value(task, x, y, n_evaluate_sample, cache_value=True):
     logging.info(f"VALUES: {value}")
     if cache_value:
         task.value_cache[value_prompt] = value
-    return value        
-  #====================    
+    return value
+#value_prompt_wrap 함수
+    def value_prompt_wrap(x: str, y: str, z: list = [], reflections: list = []) -> str:
+        question = x.split('\n')[0]
+        #z = []
+        if len(z) != 0:
+            failed_trajectories = ""
+            
+            # Combine the trajectories with their corresponding reflections
+            for traj, ref in zip(z, reflections):
+                failed_trajectories += f"{question}\n{traj}\nThis trajectory is incorrect as {ref['reflection']}\nThus the correctness score is 1\n"
+            
+            inp = x + y + "\nThis trajectory is "
+            
+            prompt = value_prompt_reasoning_feedback.format(s="", trajectories=failed_trajectories, input=inp)
+            
+            if get_token_length(prompt) > max_token_length:
+                prompt = value_prompt_reasoning_feedback_short.format(s="", trajectories=failed_trajectories, input=inp)
+        if len(z) != 0 and False:
+            failed_trajectories = "\n".join([f"{question}\n{traj}\nThus the correctness score is 1\n" for traj in z])
+            inp = x + y + "\nThus the correctness score is "
+            prompt = value_prompt_feedback.format(s="", trajectories=failed_trajectories, input=inp)
+            if get_token_length(prompt) > max_token_length:
+                print("Token length exceeded", get_token_length(prompt))
+                failed_trajectories = "\n".join([f"{question}\n{traj}\nThus the correctness score is 1\n" for traj in z[:2]])
+                inp = y + "\nThus the correctness score is "
+                prompt = value_prompt_feedback.format(s="", trajectories=failed_trajectories, input=inp)
+                print("New length", get_token_length(prompt))
+        else:
+            inp = y + "\nThis trajectory is "
+            #inp = y + "\nThus the correctess score is "
+            #prompt = value_prompt.format(s="", input=inp)
+            prompt = value_prompt_reasoning.format(s="", input=inp)
+            
+        return prompt        
+  #==================== evaluate_node 끝
     logging.info(f"Length of votes: {len(votes)}")
     logging.info(f"Length of node.children: {len(node.children)}")
     
@@ -743,4 +647,384 @@ def backpropagate(node, value):
     if best_child is None:
         best_child = root
     return best_child.state, best_child.value, all_nodes, best_child.reward, best_child.em
+```
+prompt
+```bash
+
+value_prompt = '''Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental observations about the situation, thoughts that can reason about the current situation and actions that can be three types: 
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude "Thus the correctness score is {s}", where s is an integer from 1 to 10.
+
+Question: Which other Mexican Formula One race car driver has held the podium besides the Force India driver born in 1990?
+Thought 1: I need to search for a list of Mexican Formula One race car drivers, then eliminate the one who drove for Force India and was born in 1990.
+Action 1: Search[Formula One drivers from Mexico]
+Observation 1: There have been six Formula One drivers from Mexico who have taken part in races since the championship began in 1950. Sergio P\u00e9rez is the most successful, having won six Grands Prix. Since 2021, P\u00e9rez drives for the Red Bull team.. P\u00e9rez is the only Mexican F1 driver to achieve a pole position. He took his first pole position at the 2022 Saudi Arabian Grand Prix, in his 219th Grand Prix meeting (a record for the most Grands Prix before a pole).
+Thought 2: Sergio P\u00e9rez, born in 1990 and drove for Force India, is not the Mexican driver we are looking for. The passage does not give me enough information about other Mexican drivers who have achieved a podium finish. I need to look up more information.
+Action 2: Lookup[Formula One drivers from Mexico]
+Observation 2: No more results.
+Thought 3: The available information doesn't allow me to determine which other Mexican Formula One race car driver, besides Sergio P\u00e9rez, has held the podium. With the search function failing to provide a full list of Mexican Formula One drivers, I need to return different search results. Let's try searching for Mexican Grand Prix winners, as they would have held the podium.
+Action 3: Search[Mexican Grand Prix winners]
+Observation 3: Could not find Mexican Grand Prix winners. Similar: ['Mexican Grand Prix', 'List of Formula One Grand Prix winners', '1990 Mexican Grand Prix', '2018 Mexican Grand Prix', '2019 Mexican Grand Prix'].
+Thought 4: Given the difficulties in finding a direct list of Mexican Grand Prix winners, I should search for the Mexican Grand Prix to get a broader picture of the race's history. This might include winners.
+Action 4: Search[Mexican Grand Prix]
+Thus the correctness score is 3
+
+Question: The football manager who recruited David Beckham managed Manchester United during what timeframe?Question: The football manager who recruited David Beckham managed Manchester United during what timeframe?
+Thought 1: I need to search for the football manager who recruited David Beckham, and then find out the timeframe in which he managed Manchester United.
+Action 1: Search[David Beckham's football manager]
+Observation 1: Could not find David Beckham's football manager. Similar: ['David Beckham', 'Inter Miami CF (redirect from Miami Beckham United)', 'Victoria Beckham', 'The Beckham Experiment', 'Miami Freedom Park'].
+Thought 2: I couldn't find the information on David Beckham's football manager. I need to search Manchester United and find out the timeframe of the manager.
+Action 2: Search[Manchester United]
+Observation 2: Manchester United Football Club, commonly referred to as Man United (often stylised as Man Utd), or simply United, is a professional football club based in Old Trafford, Greater Manchester, England. The club competes in the Premier League, the top division in the English football league system. Nicknamed the Red Devils, they were founded as Newton Heath LYR Football Club in 1878, but changed their name to Manchester United in 1902. After a spell playing in Clayton, Manchester, the club moved to their current stadium, Old Trafford, in 1910.. Domestically, Manchester United have won a record 20 league titles, 12 FA Cups, six League Cups and a record 21 FA Community Shields.
+Thought 3: The information about David Beckham's football manager is not available. I will search for Manchester United's managers to find the timeframe.
+Action 3: Search[Manchester United managers]
+Observation 3: Manchester United Football Club is a professional football club based in Old Trafford, Greater Manchester, England. The club was formed in Newton Heath in 1878 as Newton Heath LYR F.C., and played their first competitive match in October 1886, when they entered the First Round of the 1886–87 FA Cup. The club was renamed Manchester United F.C. in 1902, and moved to Old Trafford in 1910.. From the beginning of the club's official managerial records in 1892 to the start of the 2022–23 season, Manchester United have had 23 full-time managers.
+Thought 4: The information about David Beckham's football manager is not available. The question asks for the timeframe when the manager managed Manchester United, so I need to find a list of Manchester United managers.
+Action 4: Search[list of Manchester United managers]
+Observation 4: Manchester United Football Club is a professional football club based in Old Trafford, Greater Manchester, England. The club was formed in Newton Heath in 1878 as Newton Heath LYR F.C., and played their first competitive match in October 1886, when they entered the First Round of the 1886–87 FA Cup. The club was renamed Manchester United F.C. in 1902, and moved to Old Trafford in 1910.. From the beginning of the club's official managerial records in 1892 to the start of the 2022–23 season, Manchester United have had 23 full-time managers.
+Thus the correctness score is 4
+
+Question: Which magazine was started first Arthur's Magazine or First for Women?
+Thought 1: I need to search Arthur's Magazine and First for Women, and find which was started first.
+Action 1: Search[Arthur's Magazine]
+Observation 1: Arthur's Magazine (1844\u00e2\u0080\u00931846) was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey's Lady's Book.[3]
+Thus the correctness score is 10
+
+{input}
+'''
+
+value_prompt_feedback = '''Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental observations about the situation, thoughts that can reason about the current situation and actions that can be three types: 
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude "Thus the correctness score is {s}", where s is an integer from 1 to 10.
+
+Question: Which other Mexican Formula One race car driver has held the podium besides the Force India driver born in 1990?
+Thought 1: I need to search for a list of Mexican Formula One race car drivers, then eliminate the one who drove for Force India and was born in 1990.
+Action 1: Search[Formula One drivers from Mexico]
+Observation 1: There have been six Formula One drivers from Mexico who have taken part in races since the championship began in 1950. Sergio P\u00e9rez is the most successful, having won six Grands Prix. Since 2021, P\u00e9rez drives for the Red Bull team.. P\u00e9rez is the only Mexican F1 driver to achieve a pole position. He took his first pole position at the 2022 Saudi Arabian Grand Prix, in his 219th Grand Prix meeting (a record for the most Grands Prix before a pole).
+Thought 2: Sergio P\u00e9rez, born in 1990 and drove for Force India, is not the Mexican driver we are looking for. The passage does not give me enough information about other Mexican drivers who have achieved a podium finish. I need to look up more information.
+Action 2: Lookup[Formula One drivers from Mexico]
+Observation 2: No more results.
+Thought 3: The available information doesn't allow me to determine which other Mexican Formula One race car driver, besides Sergio P\u00e9rez, has held the podium. With the search function failing to provide a full list of Mexican Formula One drivers, I need to return different search results. Let's try searching for Mexican Grand Prix winners, as they would have held the podium.
+Action 3: Search[Mexican Grand Prix winners]
+Observation 3: Could not find Mexican Grand Prix winners. Similar: ['Mexican Grand Prix', 'List of Formula One Grand Prix winners', '1990 Mexican Grand Prix', '2018 Mexican Grand Prix', '2019 Mexican Grand Prix'].
+Thought 4: Given the difficulties in finding a direct list of Mexican Grand Prix winners, I should search for the Mexican Grand Prix to get a broader picture of the race's history. This might include winners.
+Action 4: Search[Mexican Grand Prix]
+Thus the correctness score is 3
+
+Question: Which magazine was started first Arthur's Magazine or First for Women?
+Thought 1: I need to search Arthur's Magazine and First for Women, and find which was started first.
+Action 1: Search[Arthur's Magazine]
+Observation 1: Arthur's Magazine (1844\u00e2\u0080\u00931846) was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey's Lady's Book.[3]
+Thus the correctness score is 10
+
+{trajectories}
+Question: Musician and satirist Allie Goertz wrote a song about the "The Simpsons" character Milhouse, who Matt Groening named after who?
+Thought 1: The question simplifies to "The Simpsons" character Milhouse is named after who. I only need to search Milhouse and find who it is named after.
+Action 1: Search[Milhouse]
+Observation 1: Milhouse Mussolini Van Houten is a recurring character in the Fox animated television series The Simpsons voiced by Pamela Hayden and created by Matt Groening.
+Thought 2: The paragraph does not tell who Milhouse is named after, maybe I can look up "named after".
+Action 2: Lookup[named after]
+Observation 2: (Result 1 / 1) Milhouse was named after U.S. president Richard Nixon, whose middle name was Milhous. 
+Thought 3: Milhouse was named after U.S. president Richard Nixon, so the answer is Richard Nixon.
+Action 3: Finish[President Richard Nixon]
+Thus the correctness score is 10
+
+{input}
+'''
+
+value_prompt_reasoning = '''You are an advanced reasoning agent that can improve based on self refection. Analyze the trajectories of your previous solutions to a question answering task. The trajectories are labeled by environmental observations about the situation, thoughts that can reason about the current situation and actions that can be three types: 
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude "Thus the correctness score is {s}", where s is an integer from 1 to 10.
+
+Question: Which other Mexican Formula One race car driver has held the podium besides the Force India driver born in 1990?
+Thought 1: I need to search for a list of Mexican Formula One race car drivers, then eliminate the one who drove for Force India and was born in 1990.
+Action 1: Search[Formula One drivers from Mexico]
+Observation 1: There have been six Formula One drivers from Mexico who have taken part in races since the championship began in 1950. Sergio P\u00e9rez is the most successful, having won six Grands Prix. Since 2021, P\u00e9rez drives for the Red Bull team.. P\u00e9rez is the only Mexican F1 driver to achieve a pole position. He took his first pole position at the 2022 Saudi Arabian Grand Prix, in his 219th Grand Prix meeting (a record for the most Grands Prix before a pole).
+Thought 2: Sergio P\u00e9rez, born in 1990 and drove for Force India, is not the Mexican driver we are looking for. The passage does not give me enough information about other Mexican drivers who have achieved a podium finish. I need to look up more information.
+Action 2: Lookup[Formula One drivers from Mexico]
+Observation 2: No more results.
+Thought 3: The available information doesn't allow me to determine which other Mexican Formula One race car driver, besides Sergio P\u00e9rez, has held the podium. With the search function failing to provide a full list of Mexican Formula One drivers, I need to return different search results. Let's try searching for Mexican Grand Prix winners, as they would have held the podium.
+Action 3: Search[Mexican Grand Prix winners]
+Observation 3: Could not find Mexican Grand Prix winners. Similar: ['Mexican Grand Prix', 'List of Formula One Grand Prix winners', '1990 Mexican Grand Prix', '2018 Mexican Grand Prix', '2019 Mexican Grand Prix'].
+Thought 4: Given the difficulties in finding a direct list of Mexican Grand Prix winners, I should search for the Mexican Grand Prix to get a broader picture of the race's history. This might include winners.
+Action 4: Search[Mexican Grand Prix]
+This trajectory is incorrect as my search should be related to Mexican Formula One race car drivers, not winners of the Mexican Grand Prix, a seperate event. A better search would have been for the List of Formula One Grand Prix winners, as suggested.
+Thus the correctness score is 3
+
+Question: Which magazine was started first Arthur's Magazine or First for Women?
+Thought 1: I need to search Arthur's Magazine and First for Women, and find which was started first.
+Action 1: Search[Arthur's Magazine]
+Observation 1: Arthur's Magazine (1844\u00e2\u0080\u00931846) was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey's Lady's Book.[3]
+This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
+Thus the correctness score is 10
+
+Question: The football manager who recruited David Beckham managed Manchester United during what timeframe?Question: The football manager who recruited David Beckham managed Manchester United during what timeframe?
+Thought 1: I need to search for the football manager who recruited David Beckham, and then find out the timeframe in which he managed Manchester United.
+Action 1: Search[David Beckham's football manager]
+Observation 1: Could not find David Beckham's football manager. Similar: ['David Beckham', 'Inter Miami CF (redirect from Miami Beckham United)', 'Victoria Beckham', 'The Beckham Experiment', 'Miami Freedom Park'].
+Thought 2: I couldn't find the information on David Beckham's football manager. I need to search Manchester United and find out the timeframe of the manager.
+Action 2: Search[Manchester United]
+Observation 2: Manchester United Football Club, commonly referred to as Man United (often stylised as Man Utd), or simply United, is a professional football club based in Old Trafford, Greater Manchester, England. The club competes in the Premier League, the top division in the English football league system. Nicknamed the Red Devils, they were founded as Newton Heath LYR Football Club in 1878, but changed their name to Manchester United in 1902. After a spell playing in Clayton, Manchester, the club moved to their current stadium, Old Trafford, in 1910.. Domestically, Manchester United have won a record 20 league titles, 12 FA Cups, six League Cups and a record 21 FA Community Shields.
+Thought 3: The information about David Beckham's football manager is not available. I will search for Manchester United's managers to find the timeframe.
+Action 3: Search[Manchester United managers]
+Observation 3: Manchester United Football Club is a professional football club based in Old Trafford, Greater Manchester, England. The club was formed in Newton Heath in 1878 as Newton Heath LYR F.C., and played their first competitive match in October 1886, when they entered the First Round of the 1886–87 FA Cup. The club was renamed Manchester United F.C. in 1902, and moved to Old Trafford in 1910.. From the beginning of the club's official managerial records in 1892 to the start of the 2022–23 season, Manchester United have had 23 full-time managers.
+Thought 4: The information about David Beckham's football manager is not available. The question asks for the timeframe when the manager managed Manchester United, so I need to find a list of Manchester United managers.
+Action 4: Search[list of Manchester United managers]
+Observation 4: Manchester United Football Club is a professional football club based in Old Trafford, Greater Manchester, England. The club was formed in Newton Heath in 1878 as Newton Heath LYR F.C., and played their first competitive match in October 1886, when they entered the First Round of the 1886–87 FA Cup. The club was renamed Manchester United F.C. in 1902, and moved to Old Trafford in 1910.. From the beginning of the club's official managerial records in 1892 to the start of the 2022–23 season, Manchester United have had 23 full-time managers.
+This trajectory is mostly incorrect as I was not able to retrieve the relevant information to answer the question. The searches are too broad and not relevant to the specific player recruited, David Beckham. The last two actions are also too similar. It would be better to first search for David Beckham and lookup information related to his manager.
+Thus the correctness score is 4
+
+Question: Musician and satirist Allie Goertz wrote a song about the "The Simpsons" character Milhouse, who Matt Groening named after who?
+Thought 1: The question simplifies to "The Simpsons" character Milhouse is named after who. I only need to search Milhouse and find who it is named after.
+Action 1: Search[Milhouse]
+Observation 1: Milhouse Mussolini Van Houten is a recurring character in the Fox animated television series The Simpsons voiced by Pamela Hayden and created by Matt Groening.
+Thought 2: The paragraph does not tell who Milhouse is named after, maybe I can look up "named after".
+Action 2: Lookup[named after]
+Observation 2: (Result 1 / 1) Milhouse was named after U.S. president Richard Nixon, whose middle name was Milhous. 
+Thought 3: Milhouse was named after U.S. president Richard Nixon, so the answer is Richard Nixon.
+Action 3: Finish[President Richard Nixon]
+This trajectory is correct as all of my thoughts and actions are correct. It makes sense to search for Milhouse first as it is the central subject of the question. It is also correct to directly look up the relevant information in the article, instead of trying another search. 
+Thus the correctness score is 10
+
+{input}
+'''
+
+value_prompt_reasoning_feedback = '''Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental observations about the situation, thoughts that can reason about the current situation and actions that can be three types: 
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude "Thus the correctness score is {s}", where s is an integer from 1 to 10.
+
+Question: Which other Mexican Formula One race car driver has held the podium besides the Force India driver born in 1990?
+Thought 1: I need to search for a list of Mexican Formula One race car drivers, then eliminate the one who drove for Force India and was born in 1990.
+Action 1: Search[Formula One drivers from Mexico]
+Observation 1: There have been six Formula One drivers from Mexico who have taken part in races since the championship began in 1950. Sergio P\u00e9rez is the most successful, having won six Grands Prix. Since 2021, P\u00e9rez drives for the Red Bull team.. P\u00e9rez is the only Mexican F1 driver to achieve a pole position. He took his first pole position at the 2022 Saudi Arabian Grand Prix, in his 219th Grand Prix meeting (a record for the most Grands Prix before a pole).
+Thought 2: Sergio P\u00e9rez, born in 1990 and drove for Force India, is not the Mexican driver we are looking for. The passage does not give me enough information about other Mexican drivers who have achieved a podium finish. I need to look up more information.
+Action 2: Lookup[Formula One drivers from Mexico]
+Observation 2: No more results.
+Thought 3: The available information doesn't allow me to determine which other Mexican Formula One race car driver, besides Sergio P\u00e9rez, has held the podium. With the search function failing to provide a full list of Mexican Formula One drivers, I need to return different search results. Let's try searching for Mexican Grand Prix winners, as they would have held the podium.
+Action 3: Search[Mexican Grand Prix winners]
+Observation 3: Could not find Mexican Grand Prix winners. Similar: ['Mexican Grand Prix', 'List of Formula One Grand Prix winners', '1990 Mexican Grand Prix', '2018 Mexican Grand Prix', '2019 Mexican Grand Prix'].
+Thought 4: Given the difficulties in finding a direct list of Mexican Grand Prix winners, I should search for the Mexican Grand Prix to get a broader picture of the race's history. This might include winners.
+Action 4: Search[Mexican Grand Prix]
+This trajectory is incorrect as my search should be related to Mexican Formula One race car drivers, not winners of the Mexican Grand Prix, a seperate event. A better search would have been for the List of Formula One Grand Prix winners, as suggested.
+Thus the correctness score is 3
+
+Question: Which magazine was started first Arthur's Magazine or First for Women?
+Thought 1: I need to search Arthur's Magazine and First for Women, and find which was started first.
+Action 1: Search[Arthur's Magazine]
+Observation 1: Arthur's Magazine (1844\u00e2\u0080\u00931846) was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey's Lady's Book.[3]
+This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
+Thus the correctness score is 10
+
+Question: The football manager who recruited David Beckham managed Manchester United during what timeframe?Question: The football manager who recruited David Beckham managed Manchester United during what timeframe?
+Thought 1: I need to search for the football manager who recruited David Beckham, and then find out the timeframe in which he managed Manchester United.
+Action 1: Search[David Beckham's football manager]
+Observation 1: Could not find David Beckham's football manager. Similar: ['David Beckham', 'Inter Miami CF (redirect from Miami Beckham United)', 'Victoria Beckham', 'The Beckham Experiment', 'Miami Freedom Park'].
+Thought 2: I couldn't find the information on David Beckham's football manager. I need to search Manchester United and find out the timeframe of the manager.
+Action 2: Search[Manchester United]
+Observation 2: Manchester United Football Club, commonly referred to as Man United (often stylised as Man Utd), or simply United, is a professional football club based in Old Trafford, Greater Manchester, England. The club competes in the Premier League, the top division in the English football league system. Nicknamed the Red Devils, they were founded as Newton Heath LYR Football Club in 1878, but changed their name to Manchester United in 1902. After a spell playing in Clayton, Manchester, the club moved to their current stadium, Old Trafford, in 1910.. Domestically, Manchester United have won a record 20 league titles, 12 FA Cups, six League Cups and a record 21 FA Community Shields.
+Thought 3: The information about David Beckham's football manager is not available. I will search for Manchester United's managers to find the timeframe.
+Action 3: Search[Manchester United managers]
+Observation 3: Manchester United Football Club is a professional football club based in Old Trafford, Greater Manchester, England. The club was formed in Newton Heath in 1878 as Newton Heath LYR F.C., and played their first competitive match in October 1886, when they entered the First Round of the 1886–87 FA Cup. The club was renamed Manchester United F.C. in 1902, and moved to Old Trafford in 1910.. From the beginning of the club's official managerial records in 1892 to the start of the 2022–23 season, Manchester United have had 23 full-time managers.
+Thought 4: The information about David Beckham's football manager is not available. The question asks for the timeframe when the manager managed Manchester United, so I need to find a list of Manchester United managers.
+Action 4: Search[list of Manchester United managers]
+Observation 4: Manchester United Football Club is a professional football club based in Old Trafford, Greater Manchester, England. The club was formed in Newton Heath in 1878 as Newton Heath LYR F.C., and played their first competitive match in October 1886, when they entered the First Round of the 1886–87 FA Cup. The club was renamed Manchester United F.C. in 1902, and moved to Old Trafford in 1910.. From the beginning of the club's official managerial records in 1892 to the start of the 2022–23 season, Manchester United have had 23 full-time managers.
+This trajectory is mostly incorrect as I was not able to retrieve the relevant information to answer the question. The searches are too broad and not relevant to the specific player recruited, David Beckham. The last two actions are also too similar. It would be better to first search for David Beckham and lookup information related to his manager.
+Thus the correctness score is 4
+
+Question: Musician and satirist Allie Goertz wrote a song about the "The Simpsons" character Milhouse, who Matt Groening named after who?
+Thought 1: The question simplifies to "The Simpsons" character Milhouse is named after who. I only need to search Milhouse and find who it is named after.
+Action 1: Search[Milhouse]
+Observation 1: Milhouse Mussolini Van Houten is a recurring character in the Fox animated television series The Simpsons voiced by Pamela Hayden and created by Matt Groening.
+Thought 2: The paragraph does not tell who Milhouse is named after, maybe I can look up "named after".
+Action 2: Lookup[named after]
+Observation 2: (Result 1 / 1) Milhouse was named after U.S. president Richard Nixon, whose middle name was Milhous. 
+Thought 3: Milhouse was named after U.S. president Richard Nixon, so the answer is Richard Nixon.
+Action 3: Finish[President Richard Nixon]
+This trajectory is correct as all of my thoughts and actions are correct. It makes sense to search for Milhouse first as it is the central subject of the question. It is also correct to directly look up the relevant information in the article, instead of trying another search. 
+Thus the correctness score is 10
+
+{trajectories}
+
+{input}
+'''
+
+value_prompt_reasoning_feedback_short = '''Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental observations about the situation, thoughts that can reason about the current situation and actions that can be three types: 
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude "Thus the correctness score is {s}", where s is an integer from 1 to 10.
+
+Question: Which other Mexican Formula One race car driver has held the podium besides the Force India driver born in 1990?
+Thought 1: I need to search for a list of Mexican Formula One race car drivers, then eliminate the one who drove for Force India and was born in 1990.
+Action 1: Search[Formula One drivers from Mexico]
+Observation 1: There have been six Formula One drivers from Mexico who have taken part in races since the championship began in 1950. Sergio P\u00e9rez is the most successful, having won six Grands Prix. Since 2021, P\u00e9rez drives for the Red Bull team.. P\u00e9rez is the only Mexican F1 driver to achieve a pole position. He took his first pole position at the 2022 Saudi Arabian Grand Prix, in his 219th Grand Prix meeting (a record for the most Grands Prix before a pole).
+Thought 2: Sergio P\u00e9rez, born in 1990 and drove for Force India, is not the Mexican driver we are looking for. The passage does not give me enough information about other Mexican drivers who have achieved a podium finish. I need to look up more information.
+Action 2: Lookup[Formula One drivers from Mexico]
+Observation 2: No more results.
+Thought 3: The available information doesn't allow me to determine which other Mexican Formula One race car driver, besides Sergio P\u00e9rez, has held the podium. With the search function failing to provide a full list of Mexican Formula One drivers, I need to return different search results. Let's try searching for Mexican Grand Prix winners, as they would have held the podium.
+Action 3: Search[Mexican Grand Prix winners]
+Observation 3: Could not find Mexican Grand Prix winners. Similar: ['Mexican Grand Prix', 'List of Formula One Grand Prix winners', '1990 Mexican Grand Prix', '2018 Mexican Grand Prix', '2019 Mexican Grand Prix'].
+Thought 4: Given the difficulties in finding a direct list of Mexican Grand Prix winners, I should search for the Mexican Grand Prix to get a broader picture of the race's history. This might include winners.
+Action 4: Search[Mexican Grand Prix]
+This trajectory is incorrect as my search should be related to Mexican Formula One race car drivers, not winners of the Mexican Grand Prix, a seperate event. A better search would have been for the List of Formula One Grand Prix winners, as suggested.
+Thus the correctness score is 3
+
+Question: Musician and satirist Allie Goertz wrote a song about the "The Simpsons" character Milhouse, who Matt Groening named after who?
+Thought 1: The question simplifies to "The Simpsons" character Milhouse is named after who. I only need to search Milhouse and find who it is named after.
+Action 1: Search[Milhouse]
+Observation 1: Milhouse Mussolini Van Houten is a recurring character in the Fox animated television series The Simpsons voiced by Pamela Hayden and created by Matt Groening.
+Thought 2: The paragraph does not tell who Milhouse is named after, maybe I can look up "named after".
+Action 2: Lookup[named after]
+Observation 2: (Result 1 / 1) Milhouse was named after U.S. president Richard Nixon, whose middle name was Milhous. 
+Thought 3: Milhouse was named after U.S. president Richard Nixon, so the answer is Richard Nixon.
+Action 3: Finish[President Richard Nixon]
+This trajectory is correct as all of my thoughts and actions are correct. It makes sense to search for Milhouse first as it is the central subject of the question. It is also correct to directly look up the relevant information in the article, instead of trying another search. 
+Thus the correctness score is 10
+
+{trajectories}
+
+{input}
+'''
+HotPotQA Prompts
+
+E.1
+
+Base Acting Prompt
+
+Solve a question answering task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation, and Action can be three types:
+
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+
+(3) Finish[answer], which returns the answer and finishes the task.
+
+After each observation, provide the next Thought and next Action.
+
+Here are some examples:
+
+Question: Which magazine was started first Arthur’s Magazine or First for Women?
+
+Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
+
+Action 1: Search[Arthur’s Magazine]
+
+Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
+
+Thought 2: Arthur’s Magazine was started in 1844. I need to search First for Women next.
+
+Action 2: Search[First for Women]
+
+Observation 2: First for Women is a woman’s magazine published by Bauer Media Group in the USA.[1] The magazine was started in 1989. It is based in Englewood Cliffs, New Jersey.[2] In 2011 the circulation of the magazine was 1,310,696 copies.[3]
+
+Thought 3: First for Women was started in 1989. 1844 (Arthur’s Magazine) 
+<
+ 1989 (First for Women), so Arthur’s Magazine was started first.
+
+Action 3: Finish[Arthur’s Magazine]
+
+(examples)
+
+You have attempted to answer the following question before and failed. The following reflection(s) give a plan to avoid failing to answer the question in the same way you did previously. Use them to improve your strategy of correctly answering the given question.
+
+(trajectories)
+
+(input)
+
+E.2
+
+Base Reasoning Prompt
+
+Solve a question answering task by having a Thought, then Finish with your answer. Thought can reason about the current situation. Finish[answer] returns the answer and finishes the task. You will be given context that you should use to help you answer the question. Start your response with either Action or an indexed Thought
+
+Here are some examples:
+
+Question: What is the elevation range for the area that the eastern sector of the Colorado orogeny extends into?
+
+Let’s think step by step.
+
+Thought 1: The eastern sector of Colorado orogeny extends into the High Plains.
+
+Thought 2: High Plains rise in elevation from around 1,800 to 7,000 ft
+
+Thought 3: The answer is 1,800 to 7,000 ft.
+
+Action: Finish[1,800 to 7,000 ft]
+
+(examples)
+
+Previous trial: (trajectories)
+
+(input)
+
+E.3Value Function Prompt
+Analyze the trajectories of a solution to a question answering task. The trajectories are labeled by environmental Observations about the situation, Thoughts that can reason about the current situation, and Actions that can be three types:
+
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude “Thus the correctness score is s”, where s is an integer from 1 to 10.
+
+Question: Which magazine was started first Arthur’s Magazine or First for Women?
+
+Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
+
+Action 1: Search[Arthur’s Magazine]
+
+Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
+
+This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
+
+Thus the correctness score is 10
+
+(other examples)
+
+(failed trajectories)
+
+(context)
+
+E.4Reflection Prompt
+Analyze the trajectories of a solution to a question-answering task. The trajectories are labeled by environmental Observations about the situation, Thoughts that can reason about the current situation, and Actions that can be three types:
+
+(1) Search[entity], which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search.
+
+(2) Lookup[keyword], which returns the next sentence containing keyword in the current passage.
+
+(3) Finish[answer], which returns the answer and finishes the task.
+
+Given a question and a trajectory, evaluate its correctness and provide your reasoning and analysis in detail. Focus on the latest thought, action, and observation. Incomplete trajectories can be correct if the thoughts and actions so far are correct, even if the answer is not found yet. Do not generate additional thoughts or actions. Then at the last line conclude “Thus the correctness score is s”, where s is an integer from 1 to 10.
+
+Question: Which magazine was started first Arthur’s Magazine or First for Women?
+
+Thought 1: I need to search Arthur’s Magazine and First for Women, and find which was started first.
+
+Action 1: Search[Arthur’s Magazine]
+
+Observation 1: Arthur’s Magazine was an American literary periodical published in Philadelphia in the 19th century. Edited by Timothy Shay Arthur, it featured work by Edgar A. Poe, J.H. Ingraham, Sarah Josepha Hale, Thomas G. Spear, and others.[1][2] In May 1846 it was merged into Godey’s Lady’s Book.[3]
+
+This trajectory is correct as it is reasonable to search for the first magazine provided in the question. It is also better to have simple searches corresponding to a single entity, making this the best action.
+
+Thus the correctness score is 10
+
+(other examples)
+
+(failed trajectories)
+
+(context)
 ```
