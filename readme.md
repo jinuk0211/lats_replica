@@ -226,6 +226,19 @@ Write a coherent passage of 4 short paragraphs. The end sentence of each paragra
 '''
 ```
 ```python
+import itertools
+import numpy as np
+from functools import partial
+from models import gpt
+import wikienv, wrappers
+import requests
+import logging
+import random
+
+env = wikienv.WikiEnv()
+env = wrappers.HotPotQAWrapper(env, split="train")
+env = wrappers.LoggingWrapper(env)
+
 global reflection_map
 global failed_trajectories
 reflection_map = []
@@ -412,6 +425,22 @@ def step(env, action):
             return env.step(action)
         except requests.exceptions.Timeout:
             attempts += 1
+  def step(self, action):
+    # TODO: first step obs does not have question. 
+    obs, _, done, info = self.env.step(action)
+    reward = self.get_reward(info)
+    if done:
+      obs = f"Episode finished, reward = {reward}\n"
+      info.update({"gt_answer": self.data[self.data_idx][1], "question_idx": self.data_idx})
+      info.update(self.get_metrics(info))
+    return obs, reward, done, info
+  def get_reward(self, info):
+    if info['answer'] is not None:
+      pred = normalize_answer(self.data[self.data_idx][1])
+      gt = normalize_answer(info['answer'])
+      score = (pred == gt)
+      return int(score)
+    return 0
 #####################
             # Update the new state dictionary
             new_state['thought'] = thought_line
