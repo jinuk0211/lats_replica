@@ -620,15 +620,11 @@ def get_value(task, x, y, n_evaluate_sample, cache_value=True):
         #z = []
         if len(z) != 0:
             failed_trajectories = ""
-            
             # Combine the trajectories with their corresponding reflections
             for traj, ref in zip(z, reflections):
                 failed_trajectories += f"{question}\n{traj}\nThis trajectory is incorrect as {ref['reflection']}\nThus the correctness score is 1\n"
-            
             inp = x + y + "\nThis trajectory is "
-            
             prompt = value_prompt_reasoning_feedback.format(s="", trajectories=failed_trajectories, input=inp)
-            
             if get_token_length(prompt) > max_token_length:
                 prompt = value_prompt_reasoning_feedback_short.format(s="", trajectories=failed_trajectories, input=inp)
         if len(z) != 0 and False:
@@ -646,8 +642,31 @@ def get_value(task, x, y, n_evaluate_sample, cache_value=True):
             #inp = y + "\nThus the correctess score is "
             #prompt = value_prompt.format(s="", input=inp)
             prompt = value_prompt_reasoning.format(s="", input=inp)
-            
-        return prompt        
+        return prompt
+    def value_outputs_unwrap(evaluate_prompt: str):
+        evaluate_prompt = evaluate_prompt[0]
+        if '10' in evaluate_prompt:
+            return 1.0
+        elif '9' in evaluate_prompt:
+            return 0.9
+        elif '8' in evaluate_prompt:
+            return 0.8
+        elif '7' in evaluate_prompt:
+            return 0.7
+        elif '6' in evaluate_prompt:
+            return 0.6
+        elif '5' in evaluate_prompt:
+            return 0.5
+        elif '4' in evaluate_prompt:
+            return 0.4
+        elif '3' in evaluate_prompt:
+            return 0.3
+        elif '2' in evaluate_prompt:
+            return 0.2
+        elif '1' in evaluate_prompt:
+            return 0.1
+        else:
+            return -1        
   #==================== get_value 끝
     logging.info(f"Length of votes: {len(votes)}")
     logging.info(f"Length of node.children: {len(node.children)}")
