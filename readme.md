@@ -550,6 +550,18 @@ def evaluate_node(node, args, task):
     child_prompts = [generate_prompt(child) for child in node.children if not child.is_terminal]
     votes = get_values(task, node.question, child_prompts, args.n_evaluate_sample)
 #===================================
+
+def get_values(task, x, ys, n_evaluate_sample, cache_value=True):
+    values = []
+    local_value_cache = {}
+    for y in ys:  # each partial output
+        if y in local_value_cache:  # avoid duplicate candidates
+            value = 0
+        else:    
+            value = get_value(task, x, y, n_evaluate_sample, cache_value=cache_value)
+            local_value_cache[y] = value
+        values.append(value)
+    return values
 def get_value(task, x, y, n_evaluate_sample, cache_value=True):
     global reflection_map
     global failed_trajectories
