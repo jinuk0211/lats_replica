@@ -25,15 +25,8 @@ def run(args):
     info = []
 
     for i in range(args.task_start_index, args.task_end_index):
-        # solve
         if args.algorithm == 'lats':
             state, value, all_nodes, reward, em = lats_search(args, task, i, args.iterations, True)
-        elif args.algorithm == 'tot':
-            state, value, all_nodes, reward, em = dfs_search(args, task, i, args.iterations)
-        elif args.algorithm == 'rap':
-            state, value, all_nodes, reward, em = mcts_search(args, task, i, args.iterations)
-        else:
-            raise Exception("Search algorithm option not valid")
          # log main metric
         if em is None:
             em = 0
