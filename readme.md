@@ -1,4 +1,49 @@
+```bash
+python run.py \
+    --backend gpt-3.5-turbo \
+    --task_start_index 0 \
+    --task_end_index 100 \
+    --n_generate_sample 5 \
+    --n_evaluate_sample 1 \
+    --prompt_sample cot \
+    --temperature 1.0 \
+    --iterations 30 \
+    --log logs/tot_10k.log \
+    ${@}
+```
+run.py
+```python
+def run(args):
+    task = HotPotQATask()
+    print(task)
+    logs, cnt_avg, cnt_any = [], 0, 0
 
+    # create log directories if they don't exist
+    os.makedirs(os.path.dirname(args.log), exist_ok=True)
+    count = 0
+    task_accs = []
+    info = []
+
+    for i in range(args.task_start_index, args.task_end_index):
+        # solve
+        if args.algorithm == 'lats':
+            state, value, all_nodes, reward, em = lats_search(args, task, i, args.iterations, True)
+        elif args.algorithm == 'tot':
+            state, value, all_nodes, reward, em = dfs_search(args, task, i, args.iterations)
+        elif args.algorithm == 'rap':
+            state, value, all_nodes, reward, em = mcts_search(args, task, i, args.iterations)
+        else:
+            raise Exception("Search algorithm option not valid")
+         # log main metric
+        if em is None:
+            em = 0
+        task_accs.append(em)
+        cnt_avg = sum(task_accs) / len(task_accs)
+        print(i, 'len(task_accs)', len(task_accs), 'cnt_avg', cnt_avg, '\n')
+        #all_nodes_dict = [(node.to_dict(), value) for node, value in all_nodes]
+    n = args.task_end_index - args.task_start_index
+    print('usage_so_far', gpt_usage(args.backend))
+```
 Env
 
 ```python
